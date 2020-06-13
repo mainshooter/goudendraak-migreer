@@ -30,7 +30,9 @@ const oldDb = new Database(config.old);
     if (await checkIfProductIsInDb(onlyProductname)) {
       // Product is already in the datbase
       // And only need to add the sub product
-      await addSubproduct(product, onlyProductname);
+      if (getSubProductName(name)) {
+        await addSubproduct(product, onlyProductname);
+      }
     }
     else {
       // Product is not added to the database
@@ -106,7 +108,6 @@ async function addSubproduct(fullProduct, name) {
   let subproductName = getSubProductName(fullProductName);
   let productId = await getProductId(name);
   let addProduct = await getProduct(productId);
-
   return new Promise(resolve => {
 
     let productPrice = parseFloat(fullProduct.price) - parseFloat(addProduct.price);
