@@ -37,7 +37,7 @@ const oldDb = new Database(config.old);
     else {
       // Product is not added to the database
       let productNumber = i + 1;
-      if (menuNumber) {
+      if (menuNumber && menuNumber != 'null') {        
         productNumber = menuNumber + '' + menuAddon ? menuAddon : "";
       }
       let categoryId = await getIdOfCategory(categoryName);
