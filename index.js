@@ -55,6 +55,50 @@ const oldDb = new Database(config.old);
       }
     }
   }
+
+  let sales = await oldDb.execute("SELECT DISTINCT saleDate FROM sales", []);
+  for (let i = 0; i < sales.length; i++) {
+    let sale = sales[i];
+
+    let invoice = await liveDb.execute("INSERT INTO invoice (vat, created_at, updated_at) VALUES (?,?,?)", [9, sale.saleDate, sale.saleDate]);
+    let invoiceId = invoice.insertId;
+
+    let saleProducts = await oldDb.execute("SELECT itemId, amount FROM sales WHERE saleDate=?", [sale.saleDate]);
+    for (let i = 0; i < saleProducts.length; i++) {
+      let productSale = saleProducts[i];
+
+      let product = await oldDb.execute("SELECT * FROM menu WHERE id=?", [productSale.itemId]);
+      product = product[0];
+      let productName = getProductName(product.naam);
+      let subProductName = getSubProductName(product.naam);
+
+      let productId = await getProductId(productName);
+      let newProduct = await getProduct(productId);
+
+      let input = [
+        newProduct.name,
+        newProduct.price,
+        productSale.amount,
+        invoiceId,
+        newProduct.category_id,
+        sale.saleDate,
+        sale.saleDate,
+        newProduct.id
+      ];
+
+      let invoiceProduct = await liveDb.execute("INSERT INTO invoice_product (name, price, amount, invoice_id, category_id, created_at, updated_at, product_id) VALUES (?,?,?,?,?,?,?,?)", input);
+
+      if (subProductName) {
+        let invoiceProductId = invoiceProduct.insertId;
+        let subProductDb = await liveDb.execute("SELECT * FROM subproduct JOIN product_sub_product ON product_id=? AND sub_product_id=subproduct.id WHERE name = ?", [productId, subProductName]);
+        subProductDb = subProductDb[0];
+        await liveDb.execute("INSERT INTO invoice_subproduct (name, price, invoice_product_id, subproduct_id) VALUES (?,?,?,?)"[subProductDb.name, subProductDb.price, invoiceProductId, subProductDb.id]);
+      }
+
+    }
+  }
+
+
 })();
 
 async function addSubproduct(fullProduct, name) {
